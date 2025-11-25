@@ -1,15 +1,18 @@
-FROM node:18-slim
+FROM node:20-slim
 
 WORKDIR /app
 
-COPY package.json .
+# Copiar arquivos de dependências
+COPY package*.json ./
 
+# Instalar dependências
 RUN npm install
 
-RUN apt-get update && apt-get install -y nano
-
+# Copiar código fonte
 COPY . .
 
+# Expor porta
 EXPOSE 3000
 
-CMD [ "node", "app.js" ]
+# Comando para iniciar a aplicação
+CMD ["node", "src/server.js"]
