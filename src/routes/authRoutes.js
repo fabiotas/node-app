@@ -13,5 +13,6 @@ router.post('/login', loginValidation, authController.login);
 
 router.get('/me', protect, authController.getMe);
 router.put('/me', protect, updateProfileValidation, authController.updateMe);
+router.get('/supabase-token', protect, authController.getSupabaseToken);
 
 module.exports = router;
