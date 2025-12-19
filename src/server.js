@@ -1,4 +1,6 @@
-require('dotenv').config();
+// Carregar .env apenas se as variáveis não estiverem definidas (não sobrescrever variáveis de ambiente)
+// Isso garante que variáveis do docker-compose.yml tenham prioridade
+require('dotenv').config({ override: false });
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/database');
@@ -11,6 +13,7 @@ const app = express();
 
 // Debug: Verificar variáveis de ambiente
 console.log('=== Variáveis de Ambiente ===');
+console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'CONFIGURADO' : 'NÃO CONFIGURADO');
 console.log('SUPABASE_JWT_SECRET:', process.env.SUPABASE_JWT_SECRET ? 'CONFIGURADO' : 'NÃO CONFIGURADO');
 console.log('Todas as variáveis SUPABASE/JWT:', Object.keys(process.env).filter(k => k.includes('SUPABASE') || k.includes('JWT')));
 console.log('=============================');

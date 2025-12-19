@@ -3,7 +3,11 @@ const seedAdmin = require('./seedAdmin');
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/node-user-api');
+    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/node-user-api';
+    console.log('=== Debug MONGODB_URI ===');
+    console.log('URI sendo usada:', mongoUri.replace(/\/\/[^:]+:[^@]+@/, '//***:***@')); // Ocultar credenciais no log
+    console.log('=========================');
+    const conn = await mongoose.connect(mongoUri);
     console.log(`MongoDB conectado: ${conn.connection.host}`);
     
     // Criar admin inicial após conectar ao banco
