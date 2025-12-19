@@ -9,8 +9,10 @@ on:
     branches: [ "main", "master" ]
 
 env:
-  REGISTRY: ghcr.io
+  REGISTRY_GHCR: ghcr.io
+  REGISTRY_DOCKER: docker.io
   IMAGE_NAME: ${{ github.repository }}
+  DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
 
 jobs:
   build:
@@ -29,18 +31,38 @@ jobs:
       - name: Login no GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ${{ env.REGISTRY_GHCR }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extrair metadados (tags, labels)
-        id: meta
+      - name: Login no Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      - name: Extrair metadados para GitHub Container Registry
+        id: meta-ghcr
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Extrair metadados para Docker Hub
+        id: meta-docker
+        if: github.event_name != 'pull_request'
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_HUB_USERNAME }}/${{ github.event.repository.name }}
+          tags: |
+            type=ref,event=branch
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix={{branch}}-
@@ -58,26 +80,45 @@ jobs:
           fi
           echo "✅ Secrets validados"
 
-      - name: Build e Push Docker Image
+      - name: Build e Push para GitHub Container Registry
         uses: docker/build-push-action@v5
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta-ghcr.outputs.tags }}
+          labels: ${{ steps.meta-ghcr.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          # Nota: Secrets são passados apenas para variáveis não-sensíveis
-          # Secrets sensíveis serão passados em runtime via environment
           build-args: |
             PORT=3000
             NODE_ENV=production
             JWT_EXPIRES_IN=7d
 
-      - name: Resumo da imagem
+      - name: Build e Push para Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta-docker.outputs.tags }}
+          labels: ${{ steps.meta-docker.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            PORT=3000
+            NODE_ENV=production
+            JWT_EXPIRES_IN=7d
+
+      - name: Resumo das imagens
         if: github.event_name != 'pull_request'
         run: |
-          echo "✅ Imagem Docker construída com sucesso!"
-          echo "📦 Imagem: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
-          echo "🏷️  Tags: ${{ steps.meta.outputs.tags }}"
+          echo "✅ Imagens Docker construídas e publicadas com sucesso!"
+          echo ""
+          echo "📦 GitHub Container Registry:"
+          echo "   ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}"
+          echo "   Tags: ${{ steps.meta-ghcr.outputs.tags }}"
+          echo ""
+          echo "🐳 Docker Hub:"
+          echo "   ${{ env.DOCKER_HUB_USERNAME }}/${{ github.event.repository.name }}"
+          echo "   Tags: ${{ steps.meta-docker.outputs.tags }}"
 

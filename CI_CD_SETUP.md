@@ -19,14 +19,37 @@ Para que o CI/CD funcione corretamente, você precisa configurar os seguintes **
 
 ### Secrets necessários:
 
+#### Secrets obrigatórios para a aplicação:
+
 | Secret Name | Descrição | Exemplo |
 |------------|-----------|---------|
 | `MONGODB_URI` | URI de conexão do MongoDB | `mongodb+srv://user:pass@cluster.mongodb.net/...` |
 | `JWT_SECRET` | Chave secreta para JWT | `sua-chave-secreta-super-segura` |
+
+#### Secrets para Docker Hub (opcional, mas recomendado):
+
+| Secret Name | Descrição | Como obter |
+|------------|-----------|------------|
+| `DOCKER_HUB_USERNAME` | Seu usuário do Docker Hub | Seu username no Docker Hub |
+| `DOCKER_HUB_TOKEN` | Access Token do Docker Hub | Veja instruções abaixo ⬇️ |
+
+#### Secrets opcionais:
+
+| Secret Name | Descrição | Exemplo |
+|------------|-----------|---------|
 | `SUPABASE_JWT_SECRET` | Chave secreta do Supabase | `XlE6/JHFrn/z0zwkD+...` |
 | `ADMIN_EMAIL` | Email do admin inicial | `admin@example.com` |
 | `ADMIN_PASSWORD` | Senha do admin inicial | `senha_segura_123` |
 | `ADMIN_NAME` | Nome do admin inicial | `Administrador` |
+
+### 🔑 Como criar o Docker Hub Access Token:
+
+1. Acesse: https://hub.docker.com/settings/security
+2. Clique em **"New Access Token"**
+3. Dê um nome (ex: "github-actions")
+4. Selecione as permissões: **Read, Write, Delete**
+5. Copie o token gerado (você só verá uma vez!)
+6. Adicione como secret `DOCKER_HUB_TOKEN` no GitHub
 
 ## 🔄 Como funciona
 
@@ -36,18 +59,31 @@ O workflow `.github/workflows/docker-build.yml` será executado automaticamente 
 - ✅ Criação de tags `v*` (ex: `v1.0.0`)
 - ✅ Pull Requests para `main` ou `master` (apenas build, sem push)
 
-## 📦 Onde a imagem será publicada?
+## 📦 Onde as imagens serão publicadas?
 
-A imagem será publicada no **GitHub Container Registry**:
+As imagens serão publicadas em **dois registries**:
+
+### 1. GitHub Container Registry (automático)
 ```
 ghcr.io/SEU_USUARIO/SEU_REPOSITORIO:latest
 ghcr.io/SEU_USUARIO/SEU_REPOSITORIO:main
 ghcr.io/SEU_USUARIO/SEU_REPOSITORIO:v1.0.0
 ```
 
-## 🐳 Como usar a imagem
+### 2. Docker Hub (se configurado)
+```
+SEU_USUARIO_DOCKER/SEU_REPOSITORIO:latest
+SEU_USUARIO_DOCKER/SEU_REPOSITORIO:main
+SEU_USUARIO_DOCKER/SEU_REPOSITORIO:v1.0.0
+```
 
-Após o build, você pode usar a imagem assim:
+**Nota:** Se você não configurar os secrets do Docker Hub, apenas o GitHub Container Registry será usado.
+
+## 🐳 Como usar as imagens
+
+Após o build, você pode usar as imagens assim:
+
+### Opção 1: GitHub Container Registry
 
 ```bash
 docker pull ghcr.io/SEU_USUARIO/SEU_REPOSITORIO:latest
@@ -57,6 +93,18 @@ docker run -d \
   -e MONGODB_URI="sua-uri-mongodb" \
   -e JWT_SECRET="sua-chave-secreta" \
   ghcr.io/SEU_USUARIO/SEU_REPOSITORIO:latest
+```
+
+### Opção 2: Docker Hub (mais simples)
+
+```bash
+docker pull SEU_USUARIO_DOCKER/SEU_REPOSITORIO:latest
+
+docker run -d \
+  -p 3000:3000 \
+  -e MONGODB_URI="sua-uri-mongodb" \
+  -e JWT_SECRET="sua-chave-secreta" \
+  SEU_USUARIO_DOCKER/SEU_REPOSITORIO:latest
 ```
 
 ## 🔍 Verificar se está funcionando
