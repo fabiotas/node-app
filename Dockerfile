@@ -14,40 +14,37 @@ COPY . .
 # Expor porta
 EXPOSE 3000
 
-# Argumentos de build
-# NOTA: Para produção/CI-CD, passe esses valores via --build-arg ou secrets do GitHub
-# Para desenvolvimento local, o docker-compose passa via environment (runtime)
-ARG MONGODB_URI
-ARG JWT_SECRET
-ARG JWT_EXPIRES_IN=7d
+# Argumentos de build (apenas para variáveis não-sensíveis)
 ARG PORT=3000
 ARG NODE_ENV=development
-ARG SUPABASE_JWT_SECRET
-ARG ADMIN_EMAIL
-ARG ADMIN_PASSWORD
-ARG ADMIN_NAME
+ARG JWT_EXPIRES_IN=7d
 
-# Variáveis de ambiente
-ENV MONGODB_URI=${MONGODB_URI}
-ENV JWT_SECRET=${JWT_SECRET}
-ENV JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
+# Variáveis de ambiente (apenas não-sensíveis)
 ENV PORT=${PORT}
 ENV NODE_ENV=${NODE_ENV}
-ENV SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
-ENV ADMIN_EMAIL=${ADMIN_EMAIL}
-ENV ADMIN_PASSWORD=${ADMIN_PASSWORD}
-ENV ADMIN_NAME=${ADMIN_NAME}
+ENV JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
 
-# Criar arquivo .env com todas as variáveis (linhas 1-13 do .env)
-RUN echo "MONGODB_URI=${MONGODB_URI}" > .env && \
-    echo "PORT=${PORT}" >> .env && \
-    echo "JWT_SECRET=${JWT_SECRET}" >> .env && \
-    echo "JWT_EXPIRES_IN=${JWT_EXPIRES_IN}" >> .env && \
-    echo "NODE_ENV=${NODE_ENV}" >> .env && \
-    echo "SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}" >> .env && \
-    echo "ADMIN_EMAIL=${ADMIN_EMAIL}" >> .env && \
-    echo "ADMIN_PASSWORD=${ADMIN_PASSWORD}" >> .env && \
-    echo "ADMIN_NAME=${ADMIN_NAME}" >> .env
+# Criar script de entrypoint que gera .env em runtime a partir das variáveis de ambiente
+# Isso evita expor secrets no histórico da imagem Docker
+RUN echo '#!/bin/sh' > /entrypoint.sh && \
+    echo 'set -e' >> /entrypoint.sh && \
+    echo '# Criar .env a partir das variáveis de ambiente (runtime, não build-time)' >> /entrypoint.sh && \
+    echo 'cat > .env << EOF' >> /entrypoint.sh && \
+    echo 'MONGODB_URI=${MONGODB_URI}' >> /entrypoint.sh && \
+    echo 'PORT=${PORT:-3000}' >> /entrypoint.sh && \
+    echo 'JWT_SECRET=${JWT_SECRET}' >> /entrypoint.sh && \
+    echo 'JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}' >> /entrypoint.sh && \
+    echo 'NODE_ENV=${NODE_ENV:-development}' >> /entrypoint.sh && \
+    echo 'SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}' >> /entrypoint.sh && \
+    echo 'ADMIN_EMAIL=${ADMIN_EMAIL}' >> /entrypoint.sh && \
+    echo 'ADMIN_PASSWORD=${ADMIN_PASSWORD}' >> /entrypoint.sh && \
+    echo 'ADMIN_NAME=${ADMIN_NAME}' >> /entrypoint.sh && \
+    echo 'EOF' >> /entrypoint.sh && \
+    echo '# Executar o comando original' >> /entrypoint.sh && \
+    echo 'exec "$@"' >> /entrypoint.sh && \
+    chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
 
 # Comando para iniciar a aplicação
 CMD ["node", "src/server.js"]

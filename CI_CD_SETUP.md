@@ -61,10 +61,19 @@ docker run -d \
 
 ## 🔍 Verificar se está funcionando
 
-1. Faça um push para a branch `main`
-2. Vá para a aba `Actions` no GitHub
-3. Verifique se o workflow foi executado com sucesso
-4. A imagem estará disponível em: `Packages` → `SEU_REPOSITORIO`
+1. **Configure os secrets primeiro** (veja seção acima)
+2. Faça um push para a branch `main`
+3. Vá para a aba `Actions` no GitHub
+4. Verifique se o workflow `Build and Push Docker Image` foi executado com sucesso
+5. A imagem estará disponível em: `Packages` → `SEU_REPOSITORIO`
+
+## ⚠️ Problema: Workflow antigo falhando?
+
+Se você viu um erro sobre "AWS credentials", isso é do workflow antigo (`docker-image.yml`). Ele foi **desabilitado** e não executará mais automaticamente. O novo workflow (`docker-build.yml`) é o que deve ser usado.
+
+**Para garantir que apenas o novo workflow execute:**
+- O workflow antigo agora só executa manualmente (`workflow_dispatch`)
+- O novo workflow (`docker-build.yml`) executa automaticamente em push para `main`
 
 ## ⚠️ Importante
 
@@ -74,14 +83,42 @@ docker run -d \
 
 ## 🛠️ Build local (para desenvolvimento)
 
-Para build local com docker-compose, as variáveis são passadas via `environment` no `docker-compose.yml`, então não precisa passar `--build-arg`.
+### Com docker-compose (recomendado)
 
-Para build manual:
+As variáveis são passadas via `environment` no `docker-compose.yml`:
+
+```bash
+docker-compose up --build
+```
+
+### Build manual
+
+Para build manual, você pode passar apenas variáveis não-sensíveis:
 
 ```bash
 docker build \
-  --build-arg MONGODB_URI="sua-uri" \
-  --build-arg JWT_SECRET="sua-chave" \
+  --build-arg PORT=3000 \
+  --build-arg NODE_ENV=development \
   -t minha-app:latest .
 ```
+
+**Importante:** Secrets (MONGODB_URI, JWT_SECRET, etc.) devem ser passados em **runtime** via `-e` ou `--env-file`:
+
+```bash
+docker run -d \
+  -p 3000:3000 \
+  -e MONGODB_URI="sua-uri" \
+  -e JWT_SECRET="sua-chave" \
+  -e SUPABASE_JWT_SECRET="sua-chave-supabase" \
+  minha-app:latest
+```
+
+## 🔒 Segurança - Avisos do Docker
+
+Se você viu avisos como `SecretsUsedInArgOrEnv`, isso é **normal e esperado** com a nova abordagem:
+
+- ✅ **Antes**: Secrets eram passados via `ARG`/`ENV` no build (inseguro)
+- ✅ **Agora**: Secrets são passados apenas em **runtime** via environment variables (seguro)
+- ✅ O entrypoint script cria o `.env` em runtime, não no build
+- ✅ Secrets não ficam expostos no histórico da imagem Docker
 

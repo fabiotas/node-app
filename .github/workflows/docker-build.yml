@@ -46,6 +46,18 @@ jobs:
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
 
+      - name: Validar secrets obrigatórios
+        run: |
+          if [ -z "${{ secrets.MONGODB_URI }}" ]; then
+            echo "❌ Erro: MONGODB_URI não configurado nos secrets"
+            exit 1
+          fi
+          if [ -z "${{ secrets.JWT_SECRET }}" ]; then
+            echo "❌ Erro: JWT_SECRET não configurado nos secrets"
+            exit 1
+          fi
+          echo "✅ Secrets validados"
+
       - name: Build e Push Docker Image
         uses: docker/build-push-action@v5
         with:
@@ -55,16 +67,12 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # Nota: Secrets são passados apenas para variáveis não-sensíveis
+          # Secrets sensíveis serão passados em runtime via environment
           build-args: |
-            MONGODB_URI=${{ secrets.MONGODB_URI }}
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
-            JWT_EXPIRES_IN=7d
             PORT=3000
             NODE_ENV=production
-            SUPABASE_JWT_SECRET=${{ secrets.SUPABASE_JWT_SECRET }}
-            ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
-            ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
-            ADMIN_NAME=${{ secrets.ADMIN_NAME }}
+            JWT_EXPIRES_IN=7d
 
       - name: Resumo da imagem
         if: github.event_name != 'pull_request'
