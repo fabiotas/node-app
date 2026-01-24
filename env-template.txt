@@ -10,7 +10,6 @@ ADMIN_NAME=Administrador
 
 # Configurações do SendGrid
 # API Key do SendGrid para envio de emails
-
 # Obtenha sua chave em: https://app.sendgrid.com/settings/api_keys
 SENDGRID_API_KEY=TESTE
 # Email remetente (deve ser verificado no SendGrid)
