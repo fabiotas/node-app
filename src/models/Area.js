@@ -1,5 +1,43 @@
 const mongoose = require('mongoose');
 
+// Schema para preços especiais
+const specialPriceSchema = new mongoose.Schema({
+  type: {
+    type: String,
+    enum: ['date_range', 'day_of_week', 'holiday'],
+    required: true
+  },
+  name: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  price: {
+    type: Number,
+    required: true,
+    min: 0.01
+  },
+  active: {
+    type: Boolean,
+    default: true
+  },
+  // Para date_range
+  startDate: String,
+  endDate: String,
+  isPackage: {
+    type: Boolean,
+    default: false
+  },
+  // Para day_of_week
+  daysOfWeek: [{
+    type: Number,
+    min: 0,
+    max: 6
+  }],
+  // Para holiday
+  holidayDate: String
+}, { _id: true, timestamps: false });
+
 const areaSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -47,7 +85,8 @@ const areaSchema = new mongoose.Schema({
   active: {
     type: Boolean,
     default: true
-  }
+  },
+  specialPrices: [specialPriceSchema]
 }, {
   timestamps: true
 });
@@ -64,6 +103,7 @@ areaSchema.methods.toJSON = function() {
     description: this.description,
     address: this.address,
     pricePerDay: this.pricePerDay,
+    specialPrices: this.specialPrices || [],
     maxGuests: this.maxGuests,
     amenities: this.amenities,
     images: this.images,

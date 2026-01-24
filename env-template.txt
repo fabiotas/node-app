@@ -8,6 +8,16 @@ ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=senha_segura_aqui
 ADMIN_NAME=Administrador
 
+# Configurações do SendGrid
+# API Key do SendGrid para envio de emails
+SENDGRID_API_KEY=TESTE
+# Email remetente (deve ser verificado no SendGrid)
+SENDGRID_FROM_EMAIL=noreply@yourapp.com
+# Nome da aplicação (usado nos emails)
+APP_NAME=Área Hub
+# URL base da aplicação (usado nos links de verificação)
+APP_URL=https://seu-app.onrender.com
+
 # Outras variáveis de ambiente (ajuste conforme necessário)
 # MONGODB_URI=mongodb://localhost:27017/node-user-api
 # JWT_SECRET=sua-chave-secreta-aqui

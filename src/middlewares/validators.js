@@ -136,8 +136,106 @@ exports.updateAreaValidation = [
     .isArray().withMessage('Imagens devem ser um array'),
   body('active')
     .optional()
-    .isBoolean().withMessage('Active deve ser um valor booleano')
+    .isBoolean().withMessage('Active deve ser um valor booleano'),
+  body('specialPrices')
+    .optional()
+    .isArray().withMessage('Precos especiais devem ser um array')
 ];
+
+// Função para validar preço especial
+function validateSpecialPrice(price) {
+  // Validar campos obrigatórios
+  if (!price.type) {
+    return 'Tipo é obrigatório';
+  }
+
+  if (!['date_range', 'day_of_week', 'holiday'].includes(price.type)) {
+    return 'Tipo inválido. Deve ser: date_range, day_of_week ou holiday';
+  }
+
+  if (!price.name || price.name.trim() === '') {
+    return 'Nome é obrigatório';
+  }
+
+  if (!price.price || price.price <= 0) {
+    return 'Preço deve ser maior que zero';
+  }
+
+  // Validações específicas por tipo
+  if (price.type === 'date_range') {
+    if (!price.startDate || !price.endDate) {
+      return 'Data inicial e final são obrigatórias para período especial';
+    }
+
+    const start = new Date(price.startDate);
+    const end = new Date(price.endDate);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return 'Datas inválidas';
+    }
+
+    if (start >= end) {
+      return 'Data final deve ser posterior à data inicial';
+    }
+
+    // Validar formato de data (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(price.startDate) || !dateRegex.test(price.endDate)) {
+      return 'Formato de data inválido. Use YYYY-MM-DD';
+    }
+
+    // Verificar se não é data retroativa
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (end < today) {
+      return 'Não é possível criar preços especiais para períodos que já passaram';
+    }
+
+    // isPackage é opcional, mas se existir deve ser boolean
+    if (price.isPackage !== undefined && typeof price.isPackage !== 'boolean') {
+      return 'isPackage deve ser um boolean';
+    }
+  }
+
+  if (price.type === 'day_of_week') {
+    if (!price.daysOfWeek || !Array.isArray(price.daysOfWeek) || price.daysOfWeek.length === 0) {
+      return 'Dias da semana são obrigatórios';
+    }
+
+    // Validar que são números entre 0 e 6
+    for (const day of price.daysOfWeek) {
+      if (!Number.isInteger(day) || day < 0 || day > 6) {
+        return 'Dias da semana devem ser números entre 0 (domingo) e 6 (sábado)';
+      }
+    }
+  }
+
+  if (price.type === 'holiday') {
+    if (!price.holidayDate) {
+      return 'Data do feriado é obrigatória';
+    }
+
+    // Validar formato MM-DD
+    const holidayRegex = /^\d{2}-\d{2}$/;
+    if (!holidayRegex.test(price.holidayDate)) {
+      return 'Formato de data de feriado inválido. Use MM-DD (ex: 12-25)';
+    }
+
+    const [month, day] = price.holidayDate.split('-').map(Number);
+    if (month < 1 || month > 12 || day < 1 || day > 31) {
+      return 'Data de feriado inválida';
+    }
+  }
+
+  // active é opcional, mas se existir deve ser boolean
+  if (price.active !== undefined && typeof price.active !== 'boolean') {
+    return 'active deve ser um boolean';
+  }
+
+  return null; // Sem erros
+}
+
+exports.validateSpecialPrice = validateSpecialPrice;
 
 // Booking Validations
 exports.createBookingValidation = [

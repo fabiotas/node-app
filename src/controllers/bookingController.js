@@ -218,9 +218,77 @@ exports.createBooking = async (req, res) => {
       });
     }
 
-    // Calcular preco total
+    // Calcular preco total considerando preços especiais
     const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
-    const totalPrice = nights * area.pricePerDay;
+    
+    // Função para obter o preço de uma data específica
+    const getPriceForDate = (date) => {
+      const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
+      const dayOfWeek = date.getDay(); // 0-6
+      const monthDay = `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; // MM-DD
+      
+      // Buscar preços especiais ativos
+      const activeSpecialPrices = (area.specialPrices || []).filter(sp => sp.active !== false);
+      
+      // Prioridade: date_range (isPackage) > date_range > holiday > day_of_week > preço padrão
+      
+      // 1. Verificar pacotes (date_range com isPackage = true)
+      const packagePrice = activeSpecialPrices.find(sp => 
+        sp.type === 'date_range' && 
+        sp.isPackage === true &&
+        dateStr >= sp.startDate && 
+        dateStr <= sp.endDate
+      );
+      if (packagePrice) {
+        // Se for pacote, retornar o preço do pacote dividido pelo número de dias do pacote
+        const packageStart = new Date(packagePrice.startDate);
+        const packageEnd = new Date(packagePrice.endDate);
+        const packageDays = Math.ceil((packageEnd - packageStart) / (1000 * 60 * 60 * 24)) + 1;
+        return packagePrice.price / packageDays;
+      }
+      
+      // 2. Verificar períodos especiais (date_range sem isPackage)
+      const dateRangePrice = activeSpecialPrices.find(sp => 
+        sp.type === 'date_range' && 
+        sp.isPackage !== true &&
+        dateStr >= sp.startDate && 
+        dateStr <= sp.endDate
+      );
+      if (dateRangePrice) {
+        return dateRangePrice.price;
+      }
+      
+      // 3. Verificar feriados
+      const holidayPrice = activeSpecialPrices.find(sp => 
+        sp.type === 'holiday' && 
+        sp.holidayDate === monthDay
+      );
+      if (holidayPrice) {
+        return holidayPrice.price;
+      }
+      
+      // 4. Verificar dias da semana
+      const dayOfWeekPrice = activeSpecialPrices.find(sp => 
+        sp.type === 'day_of_week' && 
+        sp.daysOfWeek && 
+        sp.daysOfWeek.includes(dayOfWeek)
+      );
+      if (dayOfWeekPrice) {
+        return dayOfWeekPrice.price;
+      }
+      
+      // 5. Preço padrão
+      return area.pricePerDay;
+    };
+    
+    // Calcular preço total dia a dia
+    let totalPrice = 0;
+    const currentDate = new Date(checkInDate);
+    
+    while (currentDate < checkOutDate) {
+      totalPrice += getPriceForDate(new Date(currentDate));
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
 
     const booking = await Booking.create({
       area: areaId,
