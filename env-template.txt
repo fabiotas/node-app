@@ -1,5 +1,5 @@
 # Configurações do Supabase
-SUPABASE_JWT_SECRET=XlE6/JHFrn/z0zwkD+bWCbGrTeIuVzGP+uyEc9xeEONdrPumUffz+I7f0Gg6mRAULaZFiblJCiD23cJw+f8AWA==
+SUPABASE_JWT_SECRET=seu-jwt-secret-aqui
 
 # Configurações do Admin Inicial
 # O sistema criará automaticamente um usuário admin na primeira inicialização
@@ -10,6 +10,8 @@ ADMIN_NAME=Administrador
 
 # Configurações do SendGrid
 # API Key do SendGrid para envio de emails
+
+# Obtenha sua chave em: https://app.sendgrid.com/settings/api_keys
 SENDGRID_API_KEY=TESTE
 # Email remetente (deve ser verificado no SendGrid)
 SENDGRID_FROM_EMAIL=noreply@yourapp.com
