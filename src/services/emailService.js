@@ -1,6 +1,7 @@
 // Tentar carregar SendGrid (opcional - não quebra se não estiver instalado)
 let sgMail = null;
 let sendGridAvailable = false;
+// teste
 
 try {
   sgMail = require('@sendgrid/mail');
