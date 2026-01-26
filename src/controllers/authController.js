@@ -2,6 +2,7 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 const { v5: uuidv5 } = require('uuid');
+const emailService = require('../services/emailService');
 
 // Namespace UUID para gerar UUIDs determinísticos
 const NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
@@ -31,6 +32,16 @@ exports.register = async (req, res) => {
 
     const { name, email, password } = req.body;
 
+    // Validar email usando SendGrid (validação básica)
+    const emailValidation = await emailService.validateEmail(email);
+    if (!emailValidation.valid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email invalido',
+        error: emailValidation.message
+      });
+    }
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({
@@ -42,9 +53,23 @@ exports.register = async (req, res) => {
     const user = await User.create({ name, email, password });
     const token = generateToken(user);
 
+    // Enviar email de boas-vindas (em background, não bloqueia a resposta)
+    emailService.sendWelcomeEmail(email, name)
+      .then(result => {
+        if (result.success) {
+          console.log(`Email de boas-vindas enviado para ${email}`);
+        } else {
+          console.error(`Falha ao enviar email para ${email}:`, result.message);
+        }
+      })
+      .catch(error => {
+        console.error(`Erro ao enviar email para ${email}:`, error);
+        // Não falha o registro se o email não for enviado
+      });
+
     res.status(201).json({
       success: true,
-      message: 'Usuario registrado com sucesso',
+      message: 'Usuario registrado com sucesso. Um email de boas-vindas foi enviado.',
       data: { user: user.toPublicJSON(), token }
     });
   } catch (error) {

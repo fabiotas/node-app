@@ -1,6 +1,7 @@
 const Area = require('../models/Area');
 const Booking = require('../models/Booking');
 const { validationResult } = require('express-validator');
+const { validateSpecialPrice } = require('../middlewares/validators');
 
 // @desc    Obter todas as areas (publico)
 // @route   GET /api/areas
@@ -122,7 +123,20 @@ exports.createArea = async (req, res) => {
       });
     }
 
-    const { name, description, address, pricePerDay, maxGuests, amenities, images } = req.body;
+    const { name, description, address, pricePerDay, maxGuests, amenities, images, specialPrices } = req.body;
+
+    // Validar preços especiais se fornecidos
+    if (specialPrices && Array.isArray(specialPrices)) {
+      for (const price of specialPrices) {
+        const validationError = validateSpecialPrice(price);
+        if (validationError) {
+          return res.status(400).json({
+            success: false,
+            message: `Erro de validação no preço especial: ${validationError}`
+          });
+        }
+      }
+    }
 
     const area = await Area.create({
       name,
@@ -132,6 +146,7 @@ exports.createArea = async (req, res) => {
       maxGuests,
       amenities: amenities || [],
       images: images || [],
+      specialPrices: specialPrices || [],
       owner: req.user._id
     });
 
@@ -154,6 +169,7 @@ exports.createArea = async (req, res) => {
 // @access  Private (apenas dono)
 exports.updateArea = async (req, res) => {
   try {
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -180,7 +196,7 @@ exports.updateArea = async (req, res) => {
       });
     }
 
-    const { name, description, address, pricePerDay, maxGuests, amenities, images, active } = req.body;
+    const { name, description, address, pricePerDay, maxGuests, amenities, images, active, specialPrices } = req.body;
 
     if (name) area.name = name;
     if (description) area.description = description;
@@ -190,6 +206,29 @@ exports.updateArea = async (req, res) => {
     if (amenities) area.amenities = amenities;
     if (images) area.images = images;
     if (typeof active === 'boolean') area.active = active;
+    
+    // Processar specialPrices se fornecido
+    if (specialPrices !== undefined) {
+      if (!Array.isArray(specialPrices)) {
+        return res.status(400).json({
+          success: false,
+          message: 'specialPrices deve ser um array'
+        });
+      }
+
+      // Validar todos os preços especiais
+      for (const price of specialPrices) {
+        const validationError = validateSpecialPrice(price);
+        if (validationError) {
+          return res.status(400).json({
+            success: false,
+            message: `Erro de validação no preço especial: ${validationError}`
+          });
+        }
+      }
+
+      area.specialPrices = specialPrices;
+    }
 
     await area.save();
 
@@ -314,3 +353,236 @@ exports.checkAvailability = async (req, res) => {
   }
 };
 
+// @desc    Obter todos os preços especiais de uma área
+// @route   GET /api/areas/:areaId/special-prices
+// @access  Private (dono da área)
+exports.getSpecialPrices = async (req, res) => {
+  try {
+    const { areaId } = req.params;
+
+    const area = await Area.findById(areaId);
+    if (!area) {
+      return res.status(404).json({
+        success: false,
+        message: 'Area nao encontrada'
+      });
+    }
+
+    // Verificar se o usuário é o dono da área
+    if (area.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Voce nao tem permissao para acessar esta area'
+      });
+    }
+
+    const specialPrices = area.specialPrices || [];
+
+    res.json({
+      success: true,
+      count: specialPrices.length,
+      data: specialPrices
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao buscar precos especiais',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Criar um novo preço especial
+// @route   POST /api/areas/:areaId/special-prices
+// @access  Private (dono da área)
+exports.createSpecialPrice = async (req, res) => {
+  try {
+    const { areaId } = req.params;
+    const specialPriceData = req.body;
+
+    const area = await Area.findById(areaId);
+    if (!area) {
+      return res.status(404).json({
+        success: false,
+        message: 'Area nao encontrada'
+      });
+    }
+
+    if (area.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Voce nao tem permissao para modificar esta area'
+      });
+    }
+
+    // Validações
+    const validationError = validateSpecialPrice(specialPriceData);
+    if (validationError) {
+      return res.status(400).json({
+        success: false,
+        message: validationError
+      });
+    }
+
+    // Inicializar array se não existir
+    if (!area.specialPrices) {
+      area.specialPrices = [];
+    }
+
+    // Adicionar preço especial
+    area.specialPrices.push(specialPriceData);
+    await area.save();
+
+    // Retornar o último preço adicionado
+    const newPrice = area.specialPrices[area.specialPrices.length - 1];
+
+    res.status(201).json({
+      success: true,
+      message: 'Preco especial criado com sucesso',
+      data: newPrice
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao criar preco especial',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Atualizar um preço especial específico
+// @route   PUT /api/areas/:areaId/special-prices/:priceId
+// @access  Private (dono da área)
+exports.updateSpecialPrice = async (req, res) => {
+  try {
+    const { areaId, priceId } = req.params;
+    const updateData = req.body;
+
+    const area = await Area.findById(areaId);
+    if (!area) {
+      return res.status(404).json({
+        success: false,
+        message: 'Area nao encontrada'
+      });
+    }
+
+    if (area.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Voce nao tem permissao para modificar esta area'
+      });
+    }
+
+    // Encontrar o preço especial
+    const priceIndex = area.specialPrices.findIndex(
+      sp => sp._id.toString() === priceId
+    );
+
+    if (priceIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Preco especial nao encontrado'
+      });
+    }
+
+    const existingPrice = area.specialPrices[priceIndex].toObject();
+
+    // Verificar se está tentando alterar data retroativa
+    if (existingPrice.type === 'date_range' && existingPrice.endDate) {
+      const endDate = new Date(existingPrice.endDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (endDate < today) {
+        // Se o período já passou, não permite alterar datas
+        if (updateData.startDate || updateData.endDate) {
+          return res.status(400).json({
+            success: false,
+            message: 'Nao e possivel alterar datas de periodos que ja passaram'
+          });
+        }
+      }
+    }
+
+    // Mesclar dados atualizados
+    const updatedPrice = {
+      ...existingPrice,
+      ...updateData
+    };
+
+    // Validações
+    const validationError = validateSpecialPrice(updatedPrice);
+    if (validationError) {
+      return res.status(400).json({
+        success: false,
+        message: validationError
+      });
+    }
+
+    // Atualizar preço especial
+    Object.assign(area.specialPrices[priceIndex], updateData);
+    await area.save();
+
+    res.json({
+      success: true,
+      message: 'Preco especial atualizado com sucesso',
+      data: area.specialPrices[priceIndex]
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao atualizar preco especial',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Excluir um preço especial
+// @route   DELETE /api/areas/:areaId/special-prices/:priceId
+// @access  Private (dono da área)
+exports.deleteSpecialPrice = async (req, res) => {
+  try {
+    const { areaId, priceId } = req.params;
+
+    const area = await Area.findById(areaId);
+    if (!area) {
+      return res.status(404).json({
+        success: false,
+        message: 'Area nao encontrada'
+      });
+    }
+
+    if (area.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Voce nao tem permissao para modificar esta area'
+      });
+    }
+
+    // Encontrar e remover o preço especial
+    const priceIndex = area.specialPrices.findIndex(
+      sp => sp._id.toString() === priceId
+    );
+
+    if (priceIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Preco especial nao encontrado'
+      });
+    }
+
+    area.specialPrices.splice(priceIndex, 1);
+    await area.save();
+
+    res.json({
+      success: true,
+      message: 'Preco especial excluido com sucesso'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao excluir preco especial',
+      error: error.message
+    });
+  }
+};
