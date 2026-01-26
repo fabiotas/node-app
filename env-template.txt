@@ -1,0 +1,28 @@
+# Configurações do Supabase
+SUPABASE_JWT_SECRET=seu-jwt-secret-aqui
+
+# Configurações do Admin Inicial
+# O sistema criará automaticamente um usuário admin na primeira inicialização
+# se essas variáveis estiverem configuradas e não existir nenhum admin
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=senha_segura_aqui
+ADMIN_NAME=Administrador
+
+# Configurações do SendGrid
+# API Key do SendGrid para envio de emails
+# Obtenha sua chave em: https://app.sendgrid.com/settings/api_keys
+SENDGRID_API_KEY=SG.sua-chave-api-sendgrid-aqui
+# Email remetente (deve ser verificado no SendGrid)
+SENDGRID_FROM_EMAIL=noreply@yourapp.com
+# Nome da aplicação (usado nos emails)
+APP_NAME=Área Hub
+# URL base da aplicação (usado nos links de verificação)
+APP_URL=https://seu-app.onrender.com
+
+# Outras variáveis de ambiente (ajuste conforme necessário)
+# MONGODB_URI=mongodb://localhost:27017/node-user-api
+# JWT_SECRET=sua-chave-secreta-aqui
+# JWT_EXPIRES_IN=7d
+# PORT=3000
+# NODE_ENV=development
+
