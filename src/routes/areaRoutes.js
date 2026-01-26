@@ -13,7 +13,7 @@ router.get('/', areaController.getAllAreas);
 // Rota protegida para obter areas do usuario (deve vir antes de /:id)
 router.get('/my', protect, areaController.getMyAreas);
 
-// Rotas para preços especiais (devem vir antes de /:id para evitar conflito)
+// Rotas para preços especiais (devem vir antes de /:id para evitar conflito).
 router.get('/:areaId/special-prices', protect, areaController.getSpecialPrices);
 router.post('/:areaId/special-prices', protect, areaController.createSpecialPrice);
 router.put('/:areaId/special-prices/:priceId', protect, areaController.updateSpecialPrice);
