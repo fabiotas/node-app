@@ -20,7 +20,50 @@ console.log('=============================');
 
 connectDB();
 
-app.use(cors());
+// Configuração de CORS
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Lista de origens permitidas
+    const allowedOrigins = [
+      'https://react-frontend-vihi.onrender.com',
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:5173',
+      'http://localhost:5174',
+      process.env.FRONTEND_URL // Permite configurar via variável de ambiente
+    ].filter(Boolean); // Remove valores undefined/null
+
+    // Log para debug (apenas em desenvolvimento ou se houver erro)
+    if (process.env.NODE_ENV === 'development' || !origin || allowedOrigins.indexOf(origin) === -1) {
+      console.log('CORS - Origin recebida:', origin);
+      console.log('CORS - Origens permitidas:', allowedOrigins);
+    }
+
+    // Permitir requisições sem origin (ex: Postman, mobile apps)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    // Verificar se a origin está na lista de permitidas
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      // Em desenvolvimento, permitir qualquer origin
+      if (process.env.NODE_ENV === 'development') {
+        callback(null, true);
+      } else {
+        console.error('CORS bloqueado - Origin não permitida:', origin);
+        callback(new Error('Não permitido pelo CORS'));
+      }
+    }
+  },
+  credentials: true, // Permite envio de cookies/credenciais
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Authorization']
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 app.use('/api/users', userRoutes);
@@ -32,7 +75,17 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'API esta funcionando!' });
 });
 
+// Middleware de tratamento de erros
 app.use((err, req, res, next) => {
+  // Se for erro de CORS, retornar resposta adequada
+  if (err.message === 'Não permitido pelo CORS') {
+    return res.status(403).json({
+      success: false,
+      message: 'Origem não permitida pelo CORS',
+      origin: req.headers.origin
+    });
+  }
+
   console.error(err.stack);
   res.status(500).json({
     success: false,

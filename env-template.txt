@@ -19,6 +19,9 @@ APP_NAME=Área Hub
 # URL base da aplicação (usado nos links de verificação)
 APP_URL=https://seu-app.onrender.com
 
+# URL do frontend (para configuração de CORS)
+FRONTEND_URL=https://react-frontend-vihi.onrender.com
+
 # Outras variáveis de ambiente (ajuste conforme necessário)
 # MONGODB_URI=mongodb://localhost:27017/node-user-api
 # JWT_SECRET=sua-chave-secreta-aqui
