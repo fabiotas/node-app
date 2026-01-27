@@ -258,3 +258,91 @@ exports.updateBookingStatusValidation = [
     .notEmpty().withMessage('Status e obrigatorio')
     .isIn(['pending', 'confirmed', 'cancelled', 'completed']).withMessage('Status invalido')
 ];
+
+// Guest Validations
+exports.createGuestValidation = [
+  body('name')
+    .trim()
+    .notEmpty().withMessage('Nome e obrigatorio')
+    .isLength({ min: 2, max: 100 }).withMessage('Nome deve ter entre 2 e 100 caracteres'),
+  body('phone')
+    .trim()
+    .notEmpty().withMessage('Celular e obrigatorio')
+    .matches(/^[\d\s\(\)\-\+]+$/).withMessage('Formato de celular invalido'),
+  body('cpf')
+    .optional()
+    .trim()
+    .custom((value) => {
+      if (!value) return true; // CPF é opcional
+      const cpf = value.replace(/\D/g, '');
+      if (cpf.length !== 11) {
+        throw new Error('CPF deve conter 11 digitos');
+      }
+      return true;
+    }),
+  body('birthDate')
+    .optional()
+    .isISO8601().withMessage('Data de nascimento invalida')
+    .custom((value) => {
+      if (!value) return true; // Data de nascimento é opcional
+      const birthDate = new Date(value);
+      const today = new Date();
+      if (birthDate > today) {
+        throw new Error('Data de nascimento nao pode ser no futuro');
+      }
+      return true;
+    })
+];
+
+// External Booking Validations (para dono da área cadastrar reservas externas)
+exports.createExternalBookingValidation = [
+  body('areaId')
+    .notEmpty().withMessage('ID da area e obrigatorio')
+    .isMongoId().withMessage('ID da area invalido'),
+  body('checkIn')
+    .notEmpty().withMessage('Data de check-in e obrigatoria')
+    .isISO8601().withMessage('Data de check-in invalida'),
+  body('checkOut')
+    .notEmpty().withMessage('Data de check-out e obrigatoria')
+    .isISO8601().withMessage('Data de check-out invalida'),
+  body('guests')
+    .notEmpty().withMessage('Numero de hospedes e obrigatorio')
+    .isInt({ min: 1 }).withMessage('Deve ter pelo menos 1 hospede'),
+  body('guest.name')
+    .trim()
+    .notEmpty().withMessage('Nome do hospede e obrigatorio')
+    .isLength({ min: 2, max: 100 }).withMessage('Nome deve ter entre 2 e 100 caracteres'),
+  body('guest.phone')
+    .trim()
+    .notEmpty().withMessage('Celular do hospede e obrigatorio')
+    .matches(/^[\d\s\(\)\-\+]+$/).withMessage('Formato de celular invalido'),
+  body('guest.cpf')
+    .optional()
+    .trim()
+    .custom((value) => {
+      if (!value) return true; // CPF é opcional
+      const cpf = value.replace(/\D/g, '');
+      if (cpf.length !== 11) {
+        throw new Error('CPF deve conter 11 digitos');
+      }
+      return true;
+    }),
+  body('guest.birthDate')
+    .optional()
+    .isISO8601().withMessage('Data de nascimento invalida')
+    .custom((value) => {
+      if (!value) return true; // Data de nascimento é opcional
+      const birthDate = new Date(value);
+      const today = new Date();
+      if (birthDate > today) {
+        throw new Error('Data de nascimento nao pode ser no futuro');
+      }
+      return true;
+    }),
+  body('totalPrice')
+    .optional()
+    .isFloat({ min: 0 }).withMessage('Preco total deve ser um numero positivo'),
+  body('status')
+    .optional()
+    .isIn(['pending', 'confirmed', 'cancelled', 'completed']).withMessage('Status invalido')
+];

@@ -8,8 +8,14 @@ const bookingSchema = new mongoose.Schema({
   },
   guest: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: [true, 'Hospede e obrigatorio']
+    required: [true, 'Hospede e obrigatorio'],
+    refPath: 'guestModel'
+  },
+  guestModel: {
+    type: String,
+    required: true,
+    enum: ['User', 'Guest'],
+    default: 'User'
   },
   checkIn: {
     type: Date,
