@@ -21,25 +21,22 @@ console.log('=============================');
 connectDB();
 
 // Configuração de CORS
+const allowedOrigins = [
+  'https://react-frontend-vihi.onrender.com',
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  process.env.FRONTEND_URL // Permite configurar via variável de ambiente
+].filter(Boolean); // Remove valores undefined/null
+
 const corsOptions = {
   origin: function (origin, callback) {
-    // Lista de origens permitidas
-    const allowedOrigins = [
-      'https://react-frontend-vihi.onrender.com',
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:5173',
-      'http://localhost:5174',
-      process.env.FRONTEND_URL // Permite configurar via variável de ambiente
-    ].filter(Boolean); // Remove valores undefined/null
+    // Log para debug
+    console.log('CORS - Origin recebida:', origin || 'sem origin');
+    console.log('CORS - Origens permitidas:', allowedOrigins);
 
-    // Log para debug (apenas em desenvolvimento ou se houver erro)
-    if (process.env.NODE_ENV === 'development' || !origin || allowedOrigins.indexOf(origin) === -1) {
-      console.log('CORS - Origin recebida:', origin);
-      console.log('CORS - Origens permitidas:', allowedOrigins);
-    }
-
-    // Permitir requisições sem origin (ex: Postman, mobile apps)
+    // Permitir requisições sem origin (ex: Postman, mobile apps, requisições do mesmo servidor)
     if (!origin) {
       return callback(null, true);
     }
@@ -50,6 +47,7 @@ const corsOptions = {
     } else {
       // Em desenvolvimento, permitir qualquer origin
       if (process.env.NODE_ENV === 'development') {
+        console.log('CORS - Permitindo origin em desenvolvimento:', origin);
         callback(null, true);
       } else {
         console.error('CORS bloqueado - Origin não permitida:', origin);
@@ -59,11 +57,50 @@ const corsOptions = {
   },
   credentials: true, // Permite envio de cookies/credenciais
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  exposedHeaders: ['Authorization']
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers'
+  ],
+  exposedHeaders: ['Authorization'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 };
 
+// Middleware para tratar requisições OPTIONS (preflight) ANTES de tudo
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    const origin = req.headers.origin;
+    const isAllowed = !origin || 
+                     allowedOrigins.indexOf(origin) !== -1 || 
+                     process.env.NODE_ENV === 'development';
+    
+    if (isAllowed) {
+      res.header('Access-Control-Allow-Origin', origin || '*');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header('Access-Control-Max-Age', '86400'); // Cache por 24 horas
+      return res.status(204).end();
+    } else {
+      // Origin não permitida - retornar 403
+      return res.status(403).json({
+        success: false,
+        message: 'Origem não permitida pelo CORS',
+        origin: origin
+      });
+    }
+  }
+  next();
+});
+
+// Aplicar CORS antes de qualquer outra coisa
 app.use(cors(corsOptions));
+
 app.use(express.json());
 
 app.use('/api/users', userRoutes);
