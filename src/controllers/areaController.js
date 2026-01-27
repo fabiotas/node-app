@@ -228,6 +228,7 @@ exports.updateArea = async (req, res) => {
       }
 
       area.specialPrices = specialPrices;
+      area.markModified('specialPrices'); // Marcar como modificado para garantir que seja salvo
     }
 
     await area.save();
@@ -376,7 +377,8 @@ exports.getSpecialPrices = async (req, res) => {
       });
     }
 
-    const specialPrices = area.specialPrices || [];
+    // Garantir que os dados sejam convertidos corretamente para JSON
+    const specialPrices = (area.specialPrices || []).map(sp => sp.toObject ? sp.toObject() : sp);
 
     res.json({
       success: true,
@@ -431,10 +433,15 @@ exports.createSpecialPrice = async (req, res) => {
 
     // Adicionar preço especial
     area.specialPrices.push(specialPriceData);
+    area.markModified('specialPrices'); // Marcar como modificado para garantir que seja salvo
     await area.save();
 
+    // Recarregar o documento do banco para garantir dados atualizados
+    await area.populate('owner', 'name email');
+    const savedArea = await Area.findById(areaId);
+    
     // Retornar o último preço adicionado
-    const newPrice = area.specialPrices[area.specialPrices.length - 1];
+    const newPrice = savedArea.specialPrices[savedArea.specialPrices.length - 1];
 
     res.status(201).json({
       success: true,
@@ -521,12 +528,19 @@ exports.updateSpecialPrice = async (req, res) => {
 
     // Atualizar preço especial
     Object.assign(area.specialPrices[priceIndex], updateData);
+    area.markModified('specialPrices'); // Marcar como modificado para garantir que seja salvo
     await area.save();
+
+    // Recarregar o documento do banco para garantir dados atualizados
+    const savedArea = await Area.findById(areaId);
+    const updatedPriceIndex = savedArea.specialPrices.findIndex(
+      sp => sp._id.toString() === priceId
+    );
 
     res.json({
       success: true,
       message: 'Preco especial atualizado com sucesso',
-      data: area.specialPrices[priceIndex]
+      data: savedArea.specialPrices[updatedPriceIndex]
     });
   } catch (error) {
     res.status(500).json({
@@ -572,6 +586,7 @@ exports.deleteSpecialPrice = async (req, res) => {
     }
 
     area.specialPrices.splice(priceIndex, 1);
+    area.markModified('specialPrices'); // Marcar como modificado para garantir que seja salvo
     await area.save();
 
     res.json({

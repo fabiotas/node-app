@@ -97,20 +97,21 @@ areaSchema.index({ active: 1 });
 areaSchema.index({ name: 'text', description: 'text', address: 'text' });
 
 areaSchema.methods.toJSON = function() {
+  const obj = this.toObject();
   return {
-    _id: this._id,
-    name: this.name,
-    description: this.description,
-    address: this.address,
-    pricePerDay: this.pricePerDay,
-    specialPrices: this.specialPrices || [],
-    maxGuests: this.maxGuests,
-    amenities: this.amenities,
-    images: this.images,
-    owner: this.owner,
-    active: this.active,
-    createdAt: this.createdAt,
-    updatedAt: this.updatedAt
+    _id: obj._id,
+    name: obj.name,
+    description: obj.description,
+    address: obj.address,
+    pricePerDay: obj.pricePerDay,
+    specialPrices: obj.specialPrices || [],
+    maxGuests: obj.maxGuests,
+    amenities: obj.amenities || [],
+    images: obj.images || [],
+    owner: obj.owner,
+    active: obj.active,
+    createdAt: obj.createdAt,
+    updatedAt: obj.updatedAt
   };
 };
 
