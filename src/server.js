@@ -108,8 +108,30 @@ app.use('/api/auth', authRoutes);
 app.use('/api/areas', areaRoutes);
 app.use('/api/bookings', bookingRoutes);
 
+// Health check endpoint - usado para keep-alive e monitoramento
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'API esta funcionando!' });
+  res.json({ 
+    status: 'OK', 
+    message: 'API esta funcionando!',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// Endpoint raiz também responde para facilitar keep-alive
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    message: 'API Node.js está rodando',
+    endpoints: {
+      health: '/api/health',
+      auth: '/api/auth',
+      users: '/api/users',
+      areas: '/api/areas',
+      bookings: '/api/bookings'
+    }
+  });
 });
 
 // Middleware de tratamento de erros

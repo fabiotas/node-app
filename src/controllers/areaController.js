@@ -123,7 +123,7 @@ exports.createArea = async (req, res) => {
       });
     }
 
-    const { name, description, address, pricePerDay, maxGuests, amenities, images, specialPrices } = req.body;
+    const { name, description, address, pricePerDay, maxGuests, amenities, images, specialPrices, shareImageIndex } = req.body;
 
     // Validar preços especiais se fornecidos
     if (specialPrices && Array.isArray(specialPrices)) {
@@ -138,6 +138,22 @@ exports.createArea = async (req, res) => {
       }
     }
 
+    // Validar shareImageIndex se fornecido
+    const imageArray = images || [];
+    let validShareImageIndex = shareImageIndex !== undefined ? shareImageIndex : 0;
+    
+    if (validShareImageIndex < 0 || (imageArray.length > 0 && validShareImageIndex >= imageArray.length)) {
+      return res.status(400).json({
+        success: false,
+        message: 'shareImageIndex deve ser um índice válido do array images'
+      });
+    }
+
+    // Se não houver imagens, shareImageIndex deve ser 0 ou undefined
+    if (imageArray.length === 0) {
+      validShareImageIndex = 0;
+    }
+
     const area = await Area.create({
       name,
       description,
@@ -145,7 +161,8 @@ exports.createArea = async (req, res) => {
       pricePerDay,
       maxGuests,
       amenities: amenities || [],
-      images: images || [],
+      images: imageArray,
+      shareImageIndex: validShareImageIndex,
       specialPrices: specialPrices || [],
       owner: req.user._id
     });
@@ -196,7 +213,7 @@ exports.updateArea = async (req, res) => {
       });
     }
 
-    const { name, description, address, pricePerDay, maxGuests, amenities, images, active, specialPrices } = req.body;
+    const { name, description, address, pricePerDay, maxGuests, amenities, images, active, specialPrices, shareImageIndex } = req.body;
 
     if (name) area.name = name;
     if (description) area.description = description;
@@ -204,7 +221,33 @@ exports.updateArea = async (req, res) => {
     if (pricePerDay !== undefined) area.pricePerDay = pricePerDay;
     if (maxGuests !== undefined) area.maxGuests = maxGuests;
     if (amenities) area.amenities = amenities;
-    if (images) area.images = images;
+    if (images) {
+      area.images = images;
+      
+      // Validar shareImageIndex se fornecido
+      if (shareImageIndex !== undefined) {
+        if (shareImageIndex < 0 || (images.length > 0 && shareImageIndex >= images.length)) {
+          return res.status(400).json({
+            success: false,
+            message: 'shareImageIndex deve ser um índice válido do array images'
+          });
+        }
+        area.shareImageIndex = shareImageIndex;
+      } else if (images.length > 0 && area.shareImageIndex >= images.length) {
+        // Se o índice atual não for mais válido após atualizar as imagens, resetar para 0
+        area.shareImageIndex = 0;
+      }
+    } else if (shareImageIndex !== undefined) {
+      // Se apenas shareImageIndex foi fornecido, validar contra o array atual
+      const currentImages = area.images || [];
+      if (shareImageIndex < 0 || (currentImages.length > 0 && shareImageIndex >= currentImages.length)) {
+        return res.status(400).json({
+          success: false,
+          message: 'shareImageIndex deve ser um índice válido do array images'
+        });
+      }
+      area.shareImageIndex = shareImageIndex;
+    }
     if (typeof active === 'boolean') area.active = active;
     
     // Processar specialPrices se fornecido

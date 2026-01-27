@@ -77,6 +77,22 @@ const areaSchema = new mongoose.Schema({
     type: String,
     trim: true
   }],
+  shareImageIndex: {
+    type: Number,
+    default: 0,
+    min: 0,
+    validate: {
+      validator: function(value) {
+        // Se não houver imagens, o índice deve ser 0
+        if (!this.images || this.images.length === 0) {
+          return value === 0 || value === undefined;
+        }
+        // O índice deve ser válido para o array de imagens
+        return value >= 0 && value < this.images.length;
+      },
+      message: 'shareImageIndex deve ser um índice válido do array images'
+    }
+  },
   owner: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -98,6 +114,14 @@ areaSchema.index({ name: 'text', description: 'text', address: 'text' });
 
 areaSchema.methods.toJSON = function() {
   const obj = this.toObject();
+  const images = obj.images || [];
+  const shareImageIndex = obj.shareImageIndex !== undefined ? obj.shareImageIndex : 0;
+  
+  // Garantir que o índice seja válido
+  const validShareImageIndex = (shareImageIndex >= 0 && shareImageIndex < images.length) 
+    ? shareImageIndex 
+    : (images.length > 0 ? 0 : null);
+  
   return {
     _id: obj._id,
     name: obj.name,
@@ -107,7 +131,9 @@ areaSchema.methods.toJSON = function() {
     specialPrices: obj.specialPrices || [],
     maxGuests: obj.maxGuests,
     amenities: obj.amenities || [],
-    images: obj.images || [],
+    images: images,
+    shareImageIndex: validShareImageIndex,
+    shareImage: validShareImageIndex !== null ? images[validShareImageIndex] : null, // URL da imagem de compartilhamento
     owner: obj.owner,
     active: obj.active,
     createdAt: obj.createdAt,
