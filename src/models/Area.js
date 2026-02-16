@@ -1,5 +1,21 @@
 const mongoose = require('mongoose');
 
+// Schema para FAQs
+const faqSchema = new mongoose.Schema({
+  question: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: [500, 'Pergunta deve ter no maximo 500 caracteres']
+  },
+  answer: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: [2000, 'Resposta deve ter no maximo 2000 caracteres']
+  }
+}, { _id: true, timestamps: false });
+
 // Schema para preços especiais
 const specialPriceSchema = new mongoose.Schema({
   type: {
@@ -58,6 +74,16 @@ const areaSchema = new mongoose.Schema({
     trim: true,
     maxlength: [200, 'Endereco deve ter no maximo 200 caracteres']
   },
+  bairro: {
+    type: String,
+    trim: true,
+    maxlength: [100, 'Bairro deve ter no maximo 100 caracteres']
+  },
+  nomeCidade: {
+    type: String,
+    trim: true,
+    maxlength: [100, 'Nome da cidade deve ter no maximo 100 caracteres']
+  },
   pricePerDay: {
     type: Number,
     required: [true, 'Preco por dia e obrigatorio'],
@@ -98,11 +124,31 @@ const areaSchema = new mongoose.Schema({
     ref: 'User',
     required: [true, 'Proprietario e obrigatorio']
   },
+  whatsapp: {
+    type: String,
+    trim: true,
+    validate: {
+      validator: function(value) {
+        // Permite string vazia ou formato de telefone (apenas números, com ou sem caracteres especiais)
+        if (!value) return true;
+        // Remove caracteres não numéricos para validação
+        const phoneNumber = value.replace(/\D/g, '');
+        // Valida se tem entre 10 e 15 dígitos (formato internacional)
+        return phoneNumber.length >= 10 && phoneNumber.length <= 15;
+      },
+      message: 'WhatsApp deve conter um número de telefone válido'
+    }
+  },
+  showWhatsapp: {
+    type: Boolean,
+    default: false
+  },
   active: {
     type: Boolean,
     default: true
   },
-  specialPrices: [specialPriceSchema]
+  specialPrices: [specialPriceSchema],
+  faqs: [faqSchema]
 }, {
   timestamps: true
 });
@@ -110,7 +156,7 @@ const areaSchema = new mongoose.Schema({
 // Index para buscas eficientes
 areaSchema.index({ owner: 1 });
 areaSchema.index({ active: 1 });
-areaSchema.index({ name: 'text', description: 'text', address: 'text' });
+areaSchema.index({ name: 'text', description: 'text', address: 'text', bairro: 'text', nomeCidade: 'text' });
 
 areaSchema.methods.toJSON = function() {
   const obj = this.toObject();
@@ -122,11 +168,13 @@ areaSchema.methods.toJSON = function() {
     ? shareImageIndex 
     : (images.length > 0 ? 0 : null);
   
-  return {
+  const result = {
     _id: obj._id,
     name: obj.name,
     description: obj.description,
     address: obj.address,
+    bairro: obj.bairro !== undefined ? obj.bairro : null,
+    nomeCidade: obj.nomeCidade !== undefined ? obj.nomeCidade : null,
     pricePerDay: obj.pricePerDay,
     specialPrices: obj.specialPrices || [],
     maxGuests: obj.maxGuests,
@@ -135,10 +183,19 @@ areaSchema.methods.toJSON = function() {
     shareImageIndex: validShareImageIndex,
     shareImage: validShareImageIndex !== null ? images[validShareImageIndex] : null, // URL da imagem de compartilhamento
     owner: obj.owner,
+    showWhatsapp: obj.showWhatsapp !== undefined ? obj.showWhatsapp : false,
+    faqs: obj.faqs || [],
     active: obj.active,
     createdAt: obj.createdAt,
     updatedAt: obj.updatedAt
   };
+
+  // Só inclui WhatsApp se showWhatsapp for true
+  if (result.showWhatsapp && obj.whatsapp) {
+    result.whatsapp = obj.whatsapp;
+  }
+
+  return result;
 };
 
 module.exports = mongoose.model('Area', areaSchema);

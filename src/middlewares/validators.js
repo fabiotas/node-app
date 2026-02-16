@@ -139,7 +139,47 @@ exports.updateAreaValidation = [
     .isBoolean().withMessage('Active deve ser um valor booleano'),
   body('specialPrices')
     .optional()
-    .isArray().withMessage('Precos especiais devem ser um array')
+    .isArray().withMessage('Precos especiais devem ser um array'),
+  body('bairro')
+    .optional()
+    .trim()
+    .isLength({ max: 100 }).withMessage('Bairro deve ter no maximo 100 caracteres'),
+  body('nomeCidade')
+    .optional()
+    .trim()
+    .isLength({ max: 100 }).withMessage('Nome da cidade deve ter no maximo 100 caracteres'),
+  body('whatsapp')
+    .optional()
+    .trim()
+    .custom((value) => {
+      if (!value) return true; // WhatsApp é opcional
+      const phoneNumber = value.replace(/\D/g, '');
+      if (phoneNumber.length < 10 || phoneNumber.length > 15) {
+        throw new Error('WhatsApp deve conter entre 10 e 15 dígitos');
+      }
+      return true;
+    }),
+  body('showWhatsapp')
+    .optional()
+    .isBoolean().withMessage('showWhatsapp deve ser um valor booleano'),
+  body('faqs')
+    .optional()
+    .isArray().withMessage('FAQs devem ser um array')
+    .custom((faqs) => {
+      if (!Array.isArray(faqs)) return true;
+      for (const faq of faqs) {
+        if (!faq.question || !faq.answer) {
+          throw new Error('Cada FAQ deve ter question e answer');
+        }
+        if (faq.question.length > 500) {
+          throw new Error('Pergunta deve ter no maximo 500 caracteres');
+        }
+        if (faq.answer.length > 2000) {
+          throw new Error('Resposta deve ter no maximo 2000 caracteres');
+        }
+      }
+      return true;
+    })
 ];
 
 // Função para validar preço especial

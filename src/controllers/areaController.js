@@ -123,7 +123,7 @@ exports.createArea = async (req, res) => {
       });
     }
 
-    const { name, description, address, pricePerDay, maxGuests, amenities, images, specialPrices, shareImageIndex } = req.body;
+    const { name, description, address, bairro, nomeCidade, whatsapp, showWhatsapp, pricePerDay, maxGuests, amenities, images, specialPrices, shareImageIndex, faqs } = req.body;
 
     // Validar preços especiais se fornecidos
     if (specialPrices && Array.isArray(specialPrices)) {
@@ -133,6 +133,30 @@ exports.createArea = async (req, res) => {
           return res.status(400).json({
             success: false,
             message: `Erro de validação no preço especial: ${validationError}`
+          });
+        }
+      }
+    }
+
+    // Validar FAQs se fornecidos
+    if (faqs && Array.isArray(faqs)) {
+      for (const faq of faqs) {
+        if (!faq.question || !faq.answer) {
+          return res.status(400).json({
+            success: false,
+            message: 'Cada FAQ deve ter question e answer'
+          });
+        }
+        if (faq.question.length > 500) {
+          return res.status(400).json({
+            success: false,
+            message: 'Pergunta deve ter no maximo 500 caracteres'
+          });
+        }
+        if (faq.answer.length > 2000) {
+          return res.status(400).json({
+            success: false,
+            message: 'Resposta deve ter no maximo 2000 caracteres'
           });
         }
       }
@@ -158,12 +182,17 @@ exports.createArea = async (req, res) => {
       name,
       description,
       address,
+      bairro,
+      nomeCidade,
+      whatsapp,
+      showWhatsapp: showWhatsapp || false,
       pricePerDay,
       maxGuests,
       amenities: amenities || [],
       images: imageArray,
       shareImageIndex: validShareImageIndex,
       specialPrices: specialPrices || [],
+      faqs: faqs || [],
       owner: req.user._id
     });
 
@@ -213,11 +242,24 @@ exports.updateArea = async (req, res) => {
       });
     }
 
-    const { name, description, address, pricePerDay, maxGuests, amenities, images, active, specialPrices, shareImageIndex } = req.body;
+    const { name, description, address, bairro, nomeCidade, whatsapp, showWhatsapp, pricePerDay, maxGuests, amenities, images, active, specialPrices, shareImageIndex, faqs } = req.body;
 
-    if (name) area.name = name;
-    if (description) area.description = description;
-    if (address) area.address = address;
+    // Debug: verificar o que está sendo recebido
+    console.log('Dados recebidos:', { bairro, nomeCidade, whatsapp, showWhatsapp, faqs });
+
+    if (name !== undefined) area.name = name;
+    if (description !== undefined) area.description = description;
+    if (address !== undefined) area.address = address;
+    if (bairro !== undefined) {
+      area.bairro = bairro === '' ? null : bairro;
+    }
+    if (nomeCidade !== undefined) {
+      area.nomeCidade = nomeCidade === '' ? null : nomeCidade;
+    }
+    if (whatsapp !== undefined) {
+      area.whatsapp = whatsapp === '' ? null : whatsapp;
+    }
+    if (typeof showWhatsapp === 'boolean') area.showWhatsapp = showWhatsapp;
     if (pricePerDay !== undefined) area.pricePerDay = pricePerDay;
     if (maxGuests !== undefined) area.maxGuests = maxGuests;
     if (amenities) area.amenities = amenities;
@@ -274,7 +316,57 @@ exports.updateArea = async (req, res) => {
       area.markModified('specialPrices'); // Marcar como modificado para garantir que seja salvo
     }
 
+    // Processar FAQs se fornecido
+    if (faqs !== undefined) {
+      if (!Array.isArray(faqs)) {
+        return res.status(400).json({
+          success: false,
+          message: 'faqs deve ser um array'
+        });
+      }
+
+      // Validar todos os FAQs
+      for (const faq of faqs) {
+        if (!faq.question || !faq.answer) {
+          return res.status(400).json({
+            success: false,
+            message: 'Cada FAQ deve ter question e answer'
+          });
+        }
+        if (faq.question.length > 500) {
+          return res.status(400).json({
+            success: false,
+            message: 'Pergunta deve ter no maximo 500 caracteres'
+          });
+        }
+        if (faq.answer.length > 2000) {
+          return res.status(400).json({
+            success: false,
+            message: 'Resposta deve ter no maximo 2000 caracteres'
+          });
+        }
+      }
+
+      area.faqs = faqs;
+      area.markModified('faqs'); // Marcar como modificado para garantir que seja salvo
+    }
+
+    // Garantir que os campos sejam marcados como modificados
+    if (bairro !== undefined) area.markModified('bairro');
+    if (nomeCidade !== undefined) area.markModified('nomeCidade');
+    if (whatsapp !== undefined) area.markModified('whatsapp');
+    if (typeof showWhatsapp === 'boolean') area.markModified('showWhatsapp');
+
     await area.save();
+
+    // Debug: verificar o que foi salvo
+    console.log('Dados salvos:', { 
+      bairro: area.bairro, 
+      nomeCidade: area.nomeCidade, 
+      whatsapp: area.whatsapp, 
+      showWhatsapp: area.showWhatsapp,
+      faqs: area.faqs 
+    });
 
     res.json({
       success: true,
