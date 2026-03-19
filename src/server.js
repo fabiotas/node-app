@@ -8,6 +8,8 @@ const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
 const areaRoutes = require('./routes/areaRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
+const { UPLOAD_DIR } = require('./config/upload');
 
 const app = express();
 
@@ -103,10 +105,14 @@ app.use(cors(corsOptions));
 
 app.use(express.json());
 
+// Arquivos de upload (imagens na VPS) - rota pública para leitura
+app.use('/uploads', express.static(UPLOAD_DIR));
+
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/areas', areaRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Health check endpoint - usado para keep-alive e monitoramento
 app.get('/api/health', (req, res) => {

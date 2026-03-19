@@ -1,5 +1,19 @@
-# Configurações do Supabase
+# Configurações do Supabase (opcional se usar upload na VPS)
 SUPABASE_JWT_SECRET=seu-jwt-secret-aqui
+
+# Armazenamento de imagens na VPS
+# Pasta onde as imagens serão salvas (path absoluto na VPS ou relativo ao projeto)
+UPLOAD_DIR=/app/uploads
+# URL base da API (para montar URLs das imagens). Ex: https://api.seudominio.com
+BASE_URL=https://api.seudominio.com
+# Tamanho máximo por arquivo em MB (padrão 5)
+UPLOAD_MAX_FILE_SIZE_MB=5
+
+# MongoDB local (rodando no docker-compose)
+MONGO_DB_NAME=node-user-api
+MONGO_ROOT_USERNAME=app_admin
+MONGO_ROOT_PASSWORD=troque-esta-senha
+MONGODB_URI=mongodb://app_admin:troque-esta-senha@mongo:27017/node-user-api?authSource=admin
 
 # Configurações do Admin Inicial
 # O sistema criará automaticamente um usuário admin na primeira inicialização
@@ -23,9 +37,8 @@ APP_URL=https://seu-app.onrender.com
 FRONTEND_URL=https://react-frontend-vihi.onrender.com
 
 # Outras variáveis de ambiente (ajuste conforme necessário)
-# MONGODB_URI=mongodb://localhost:27017/node-user-api
 # JWT_SECRET=sua-chave-secreta-aqui
 # JWT_EXPIRES_IN=7d
 # PORT=3000
-# NODE_ENV=development
+# NODE_ENV=production
 

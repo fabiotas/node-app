@@ -5,44 +5,60 @@ services:
     container_name: node-user-api
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "${PORT:-3000}:3000"
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=${NODE_ENV:-production}
       - PORT=3000
-      - MONGODB_URI=mongodb+srv://fabiot:Fab!313230@calendario-area.t52j3m8.mongodb.net/?appName=calendario-area
-      - JWT_SECRET=minha-chave-secreta-super-segura-123456
-      - JWT_EXPIRES_IN=7d
-      - SUPABASE_JWT_SECRET=XlE6/JHFrn/z0zwkD+bWCbGrTeIuVzGP+uyEc9xeEONdrPumUffz+I7f0Gg6mRAULaZFiblJCiD23cJw+f8AWA==
+      - MONGODB_URI=${MONGODB_URI}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
+      - BASE_URL=${BASE_URL}
+      - UPLOAD_DIR=${UPLOAD_DIR:-/app/uploads}
+      - UPLOAD_MAX_FILE_SIZE_MB=${UPLOAD_MAX_FILE_SIZE_MB:-5}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - ADMIN_NAME=${ADMIN_NAME}
     depends_on:
       - mongo
     networks:
       - app-network
     volumes:
       - .:/app
+      - uploads-data:/app/uploads
 
   # MongoDB
   mongo:
     image: mongo:7
     container_name: mongodb
     restart: unless-stopped
-    ports:
-      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+      - MONGO_INITDB_DATABASE=${MONGO_DB_NAME:-node-user-api}
     volumes:
       - mongo-data:/data/db
     networks:
       - app-network
+    # Para acesso externo direto ao Mongo (evite em produção), descomente:
+    # ports:
+    #   - "27017:27017"
 
   # Mongo Express (interface web para MongoDB - opcional)
   mongo-express:
     image: mongo-express
     container_name: mongo-express
     restart: unless-stopped
+    profiles: ["tools"]
     ports:
-      - "8081:8081"
+      - "${MONGO_EXPRESS_PORT:-8081}:8081"
     environment:
       - ME_CONFIG_MONGODB_SERVER=mongo
-      - ME_CONFIG_BASICAUTH_USERNAME=admin
-      - ME_CONFIG_BASICAUTH_PASSWORD=admin123
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=${MONGO_ROOT_USERNAME}
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=${MONGO_ROOT_PASSWORD}
+      - ME_CONFIG_BASICAUTH_USERNAME=${MONGO_EXPRESS_USER:-admin}
+      - ME_CONFIG_BASICAUTH_PASSWORD=${MONGO_EXPRESS_PASSWORD:-F@b!313230}
     depends_on:
       - mongo
     networks:
@@ -54,3 +70,4 @@ networks:
 
 volumes:
   mongo-data:
+  uploads-data:
