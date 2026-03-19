@@ -2,7 +2,6 @@ services:
   # API Node.js
   api:
     build: .
-    container_name: node-user-api
     restart: unless-stopped
     ports:
       - "${PORT:-3000}:3000"
@@ -13,10 +12,10 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
       - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
-      - BASE_URL=${BASE_URL}
+      - BASE_URL=${BASE_URL:-}
       - UPLOAD_DIR=${UPLOAD_DIR:-/app/uploads}
       - UPLOAD_MAX_FILE_SIZE_MB=${UPLOAD_MAX_FILE_SIZE_MB:-5}
-      - FRONTEND_URL=${FRONTEND_URL}
+      - FRONTEND_URL=${FRONTEND_URL:-}
       - ADMIN_EMAIL=${ADMIN_EMAIL}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - ADMIN_NAME=${ADMIN_NAME}
@@ -27,15 +26,15 @@ services:
     volumes:
       - .:/app
       - uploads-data:/app/uploads
+    command: sh -c "npm install && node src/server.js"
 
   # MongoDB
   mongo:
     image: mongo:7
-    container_name: mongodb
     restart: unless-stopped
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME:-root}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-rootpass}
       - MONGO_INITDB_DATABASE=${MONGO_DB_NAME:-node-user-api}
     volumes:
       - mongo-data:/data/db
@@ -48,15 +47,14 @@ services:
   # Mongo Express (interface web para MongoDB - opcional)
   mongo-express:
     image: mongo-express
-    container_name: mongo-express
     restart: unless-stopped
     profiles: ["tools"]
     ports:
       - "${MONGO_EXPRESS_PORT:-8081}:8081"
     environment:
       - ME_CONFIG_MONGODB_SERVER=mongo
-      - ME_CONFIG_MONGODB_ADMINUSERNAME=${MONGO_ROOT_USERNAME}
-      - ME_CONFIG_MONGODB_ADMINPASSWORD=${MONGO_ROOT_PASSWORD}
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=${MONGO_ROOT_USERNAME:-root}
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=${MONGO_ROOT_PASSWORD:-rootpass}
       - ME_CONFIG_BASICAUTH_USERNAME=${MONGO_EXPRESS_USER:-admin}
       - ME_CONFIG_BASICAUTH_PASSWORD=${MONGO_EXPRESS_PASSWORD:-F@b!313230}
     depends_on:
