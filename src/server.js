@@ -25,6 +25,8 @@ connectDB();
 // Configuração de CORS
 const allowedOrigins = [
   'https://react-frontend-vihi.onrender.com',
+  'https://areahub.com.br',
+  'https://www.areahub.com.br',
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:5173',
