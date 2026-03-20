@@ -34,6 +34,14 @@ exports.protect = async (req, res, next) => {
         });
       }
 
+      if (user.approvalStatus && user.approvalStatus !== 'approved') {
+        return res.status(403).json({
+          success: false,
+          message: 'Conta aguardando liberacao do administrador',
+          approvalStatus: user.approvalStatus
+        });
+      }
+
       req.user = user;
       next();
     } catch (error) {
@@ -60,5 +68,22 @@ exports.authorize = (...roles) => {
       });
     }
     next();
+  };
+};
+
+exports.authorizeSelfOrAdmin = (paramKey = 'id') => {
+  return (req, res, next) => {
+    if (req.user.role === 'admin') {
+      return next();
+    }
+
+    if (req.params[paramKey] && req.params[paramKey].toString() === req.user._id.toString()) {
+      return next();
+    }
+
+    return res.status(403).json({
+      success: false,
+      message: 'Voce nao tem permissao para acessar este recurso'
+    });
   };
 };

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
-const { protect, authorize } = require('../middlewares/auth');
+const { protect, authorize, authorizeSelfOrAdmin } = require('../middlewares/auth');
 const { 
   createUserValidation, 
   updateUserValidation, 
@@ -17,12 +17,12 @@ router
 
 router
   .route('/:id')
-  .get(userController.getUserById)
-  .put(updateUserValidation, userController.updateUser)
+  .get(authorizeSelfOrAdmin('id'), userController.getUserById)
+  .put(authorize('admin'), updateUserValidation, userController.updateUser)
   .delete(authorize('admin'), userController.deleteUser);
 
 router
   .route('/:id/password')
-  .patch(updatePasswordValidation, userController.updatePassword);
+  .patch(authorizeSelfOrAdmin('id'), updatePasswordValidation, userController.updatePassword);
 
 module.exports = router;

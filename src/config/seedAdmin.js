@@ -10,6 +10,11 @@ const seedAdmin = async () => {
     const existingAdmin = await User.findOne({ role: 'admin' });
     
     if (existingAdmin) {
+      if (existingAdmin.approvalStatus !== 'approved' || !existingAdmin.active) {
+        existingAdmin.approvalStatus = 'approved';
+        existingAdmin.active = true;
+        await existingAdmin.save();
+      }
       console.log('✓ Usuário admin já existe no sistema');
       return;
     }
@@ -32,6 +37,8 @@ const seedAdmin = async () => {
     if (existingUser) {
       console.log(`⚠ Email ${adminEmail} já está em uso. Atualizando para admin...`);
       existingUser.role = 'admin';
+      existingUser.approvalStatus = 'approved';
+      existingUser.active = true;
       await existingUser.save();
       console.log('✓ Usuário atualizado para admin');
       return;
@@ -43,6 +50,7 @@ const seedAdmin = async () => {
       email: adminEmail,
       password: adminPassword,
       role: 'admin',
+      approvalStatus: 'approved',
       active: true
     });
 

@@ -3,7 +3,7 @@ const { validationResult } = require('express-validator');
 
 exports.getAllUsers = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search } = req.query;
+    const { page = 1, limit = 10, search, approvalStatus, active } = req.query;
     
     let query = {};
     if (search) {
@@ -13,6 +13,14 @@ exports.getAllUsers = async (req, res) => {
           { email: { $regex: search, $options: 'i' } }
         ]
       };
+    }
+
+    if (approvalStatus) {
+      query.approvalStatus = approvalStatus;
+    }
+
+    if (active !== undefined) {
+      query.active = active === 'true';
     }
 
     const users = await User.find(query)
@@ -89,7 +97,14 @@ exports.createUser = async (req, res) => {
       });
     }
 
-    const user = await User.create({ name, email, password, role });
+    const user = await User.create({
+      name,
+      email,
+      password,
+      role,
+      approvalStatus: 'approved',
+      active: true
+    });
 
     res.status(201).json({
       success: true,
@@ -235,6 +250,93 @@ exports.updatePassword = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Erro ao atualizar senha',
+      error: error.message
+    });
+  }
+};
+
+exports.approveUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuario nao encontrado'
+      });
+    }
+
+    user.approvalStatus = 'approved';
+    user.active = true;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Usuario aprovado com sucesso',
+      data: user.toPublicJSON()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao aprovar usuario',
+      error: error.message
+    });
+  }
+};
+
+exports.rejectUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuario nao encontrado'
+      });
+    }
+
+    user.approvalStatus = 'rejected';
+    user.active = false;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Usuario reprovado com sucesso',
+      data: user.toPublicJSON()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao reprovar usuario',
+      error: error.message
+    });
+  }
+};
+
+exports.blockUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuario nao encontrado'
+      });
+    }
+
+    user.approvalStatus = 'blocked';
+    user.active = false;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Usuario bloqueado com sucesso',
+      data: user.toPublicJSON()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao bloquear usuario',
       error: error.message
     });
   }

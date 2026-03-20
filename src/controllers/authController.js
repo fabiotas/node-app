@@ -50,7 +50,7 @@ exports.register = async (req, res) => {
       });
     }
 
-    const user = await User.create({ name, email, password });
+    const user = await User.create({ name, email, password, approvalStatus: 'pending' });
     const token = generateToken(user);
 
     // Enviar email de boas-vindas (em background, não bloqueia a resposta)
@@ -106,6 +106,14 @@ exports.login = async (req, res) => {
       return res.status(401).json({
         success: false,
         message: 'Conta desativada'
+      });
+    }
+
+    if (user.approvalStatus && user.approvalStatus !== 'approved') {
+      return res.status(403).json({
+        success: false,
+        message: 'Conta aguardando liberacao do administrador',
+        approvalStatus: user.approvalStatus
       });
     }
 

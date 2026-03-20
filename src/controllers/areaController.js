@@ -8,16 +8,15 @@ const { validateSpecialPrice } = require('../middlewares/validators');
 // @access  Public
 exports.getAllAreas = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search, active } = req.query;
+    const { page = 1, limit = 10, search } = req.query;
     
-    let query = {};
-    
-    // Filtro por status ativo (por padrao, apenas areas ativas para publico)
-    if (active !== undefined) {
-      query.active = active === 'true';
-    } else {
-      query.active = true;
-    }
+    let query = {
+      active: true,
+      $or: [
+        { approvalStatus: 'approved' },
+        { approvalStatus: { $exists: false } }
+      ]
+    };
 
     // Busca por texto
     if (search) {
@@ -193,7 +192,8 @@ exports.createArea = async (req, res) => {
       shareImageIndex: validShareImageIndex,
       specialPrices: specialPrices || [],
       faqs: faqs || [],
-      owner: req.user._id
+      owner: req.user._id,
+      approvalStatus: req.user.role === 'admin' ? 'approved' : 'pending'
     });
 
     res.status(201).json({
@@ -732,6 +732,113 @@ exports.deleteSpecialPrice = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Erro ao excluir preco especial',
+      error: error.message
+    });
+  }
+};
+
+exports.getAllAreasAdmin = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, search, approvalStatus, active } = req.query;
+    let query = {};
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { address: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    if (approvalStatus) {
+      query.approvalStatus = approvalStatus;
+    }
+
+    if (active !== undefined) {
+      query.active = active === 'true';
+    }
+
+    const areas = await Area.find(query)
+      .populate('owner', 'name email')
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .sort({ createdAt: -1 });
+
+    const total = await Area.countDocuments(query);
+
+    res.json({
+      success: true,
+      count: areas.length,
+      data: areas,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        itemsPerPage: parseInt(limit)
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao buscar areas (admin)',
+      error: error.message
+    });
+  }
+};
+
+exports.approveArea = async (req, res) => {
+  try {
+    const area = await Area.findById(req.params.id);
+
+    if (!area) {
+      return res.status(404).json({
+        success: false,
+        message: 'Area nao encontrada'
+      });
+    }
+
+    area.approvalStatus = 'approved';
+    area.active = true;
+    await area.save();
+
+    res.json({
+      success: true,
+      message: 'Area aprovada com sucesso',
+      data: area
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao aprovar area',
+      error: error.message
+    });
+  }
+};
+
+exports.rejectArea = async (req, res) => {
+  try {
+    const area = await Area.findById(req.params.id);
+
+    if (!area) {
+      return res.status(404).json({
+        success: false,
+        message: 'Area nao encontrada'
+      });
+    }
+
+    area.approvalStatus = 'rejected';
+    area.active = false;
+    await area.save();
+
+    res.json({
+      success: true,
+      message: 'Area reprovada com sucesso',
+      data: area
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao reprovar area',
       error: error.message
     });
   }

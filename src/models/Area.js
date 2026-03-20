@@ -147,6 +147,11 @@ const areaSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  approvalStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending'
+  },
   specialPrices: [specialPriceSchema],
   faqs: [faqSchema]
 }, {
@@ -186,6 +191,7 @@ areaSchema.methods.toJSON = function() {
     showWhatsapp: obj.showWhatsapp !== undefined ? obj.showWhatsapp : false,
     faqs: obj.faqs || [],
     active: obj.active,
+    approvalStatus: obj.approvalStatus || 'pending',
     createdAt: obj.createdAt,
     updatedAt: obj.updatedAt
   };

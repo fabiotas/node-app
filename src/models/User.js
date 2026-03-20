@@ -28,6 +28,11 @@ const userSchema = new mongoose.Schema({
     enum: ['user', 'admin'],
     default: 'user'
   },
+  approvalStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected', 'blocked'],
+    default: 'pending'
+  },
   active: {
     type: Boolean,
     default: true
@@ -55,6 +60,7 @@ userSchema.methods.toPublicJSON = function() {
     name: this.name,
     email: this.email,
     role: this.role,
+    approvalStatus: this.approvalStatus || 'approved',
     active: this.active,
     createdAt: this.createdAt,
     updatedAt: this.updatedAt
