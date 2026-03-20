@@ -1,11 +1,3 @@
-const express = require('express');
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-app.get('/', (req, res) => {
-  res.send('Hello, Docker!');
-});
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Mantém compatibilidade com ambientes que ainda executam `node app.js`
+// e delega para o servidor principal da API.
+require('./src/server');
