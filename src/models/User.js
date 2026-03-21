@@ -56,7 +56,8 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
 
 userSchema.methods.toPublicJSON = function() {
   return {
-    id: this._id,
+    _id: this._id,
+    id: this._id, // Compatibilidade com consumidores que usam `id`
     name: this.name,
     email: this.email,
     role: this.role,
