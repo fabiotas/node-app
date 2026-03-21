@@ -34,14 +34,6 @@ exports.protect = async (req, res, next) => {
         });
       }
 
-      if (user.approvalStatus && user.approvalStatus !== 'approved') {
-        return res.status(403).json({
-          success: false,
-          message: 'Conta aguardando liberacao do administrador',
-          approvalStatus: user.approvalStatus
-        });
-      }
-
       req.user = user;
       next();
     } catch (error) {

@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "create-admin": "node scripts/create-admin.js"
+    "create-admin": "node scripts/create-admin.js",
+    "approve-existing-users": "node scripts/approve-existing-users.js"
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.3",

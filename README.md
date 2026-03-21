@@ -80,6 +80,15 @@ curl -X POST http://localhost:3000/api/auth/login \
   }'
 ```
 
+### Aprovar usuários já existentes (migração única)
+
+```bash
+npm run approve-existing-users
+```
+
+Este script aprova automaticamente usuários com status `pending` e `rejected`,
+mantendo usuários `blocked` sem alteração.
+
 ### Listar Usuários (com autenticação)
 
 ```bash
